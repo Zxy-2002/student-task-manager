@@ -36,17 +36,17 @@ jobs:
     environment: production   # required reviewers + environment-scoped secrets
     steps:
       - uses: actions/checkout@v7
-      - name: Check required secrets exist (values are masked in logs)
+      # Env var names here are the GitHub Secret names on the production environment.
+      # GitHub rejects secret names that start with GITHUB_, so the OAuth secrets
+      # are OAUTH_GITHUB_CLIENT_ID and OAUTH_GITHUB_CLIENT_SECRET. The app reads
+      # GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET at runtime on the host.
+      - name: Check required secrets exist (names only; values are never printed)
         env:
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
+          OAUTH_GITHUB_CLIENT_ID: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+          OAUTH_GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-        run: |
-          for v in SESSION_SECRET GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET DEPLOY_TOKEN; do
-            if [ -z "${!v}" ]; then echo "::error::missing secret $v"; exit 1; fi
-          done
-          echo "all production secrets present"
+        run: bash scripts/check-production-secrets.sh
       - name: Deploy
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

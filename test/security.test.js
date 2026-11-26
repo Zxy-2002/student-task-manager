@@ -21,10 +21,42 @@ test('priority_labels OFF: API strips priority and rejects writes with 403', asy
   assert.equal(Object.hasOwn(created.body, 'priority'), false);
 
   await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: 'Low' }).expect(403);
+  await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: null }).expect(403);
 
   const list = await agent.get('/api/tasks').expect(200);
   assert.equal(list.body.tasks.length, 1);
   assert.equal(Object.hasOwn(list.body.tasks[0], 'priority'), false);
+});
+
+test('priority_labels ON: PATCH sets, changes, and clears priority without dropping other fields', async () => {
+  const app = makeApp({ dark_mode: { enabled: true, rollout: 100 }, priority_labels: { enabled: true, rollout: 100 } });
+  const { agent, csrf } = await login(app, STUDENT_ID);
+  const created = await agent.post('/api/tasks').set('X-CSRF-Token', csrf).send({ title: 'Essay' }).expect(201);
+  assert.equal(created.body.priority, null);
+
+  const high = await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: 'High' }).expect(200);
+  assert.equal(high.body.priority, 'High');
+  assert.equal(high.body.title, 'Essay');
+
+  const low = await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: 'Low' }).expect(200);
+  assert.equal(low.body.priority, 'Low');
+
+  // a done-only update must keep the priority that was just saved
+  const done = await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ done: true }).expect(200);
+  assert.equal(done.body.done, true);
+  assert.equal(done.body.priority, 'Low');
+
+  const cleared = await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: null }).expect(200);
+  assert.equal(cleared.body.priority, null);
+  assert.equal(cleared.body.done, true);
+
+  const list = await agent.get('/api/tasks').expect(200);
+  assert.equal(list.body.tasks[0].priority, null);
+  assert.equal(list.body.tasks[0].done, true);
+
+  await agent.patch(`/api/tasks/${created.body.id}`).set('X-CSRF-Token', csrf).send({ priority: 'Urgent' }).expect(400);
+  const still = await agent.get(`/api/tasks/${created.body.id}`).expect(200);
+  assert.equal(still.body.priority, null);
 });
 
 test('non-admin cannot toggle a flag (403); admin can (200)', async () => {

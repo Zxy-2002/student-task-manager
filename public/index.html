@@ -37,6 +37,13 @@
 
       <section id="admin" class="card" hidden>
         <h2>Feature flags (admin)</h2>
+        <p id="flag-help" class="flag-note">
+          A feature appears only when both <strong>on</strong> is checked and <strong>rollout</strong> is greater than 0%.
+          <strong>100%</strong> enables it for all users.
+          <strong>0%</strong> enables it for nobody, even when <strong>on</strong> is checked.
+          A percentage in between enables it for that share of users.
+          Turning <strong>on</strong> off disables it for everyone, regardless of the rollout percentage.
+        </p>
         <div id="flag-rows"></div>
       </section>
     </section>

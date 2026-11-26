@@ -1,6 +1,6 @@
 'use strict';
 // Frontend only *reflects* flags. The real enforcement is on the server
-// (hiding the priority dropdown here is UX, not access control).
+// (hiding the priority controls here is UX, not access control).
 let csrf = null;
 let flags = {};
 
@@ -30,6 +30,35 @@ async function loadFlags() {
   return res;
 }
 
+const PRIORITY_OPTIONS = [['', 'No priority'], ['High', 'High'], ['Medium', 'Medium'], ['Low', 'Low']];
+
+// Shown only when the server says priority_labels is on for this user.
+// Empty selection is stored as null. The PATCH goes through api(), which sends the CSRF token.
+function priorityControl(task) {
+  const sel = el('select', { className: 'priority', title: 'Change priority' });
+  sel.setAttribute('aria-label', `Priority for ${task.title}`);
+  for (const [value, label] of PRIORITY_OPTIONS) sel.append(el('option', { value, textContent: label }));
+  sel.value = task.priority || '';
+  const paint = () => {
+    sel.classList.remove('none', 'High', 'Medium', 'Low');
+    sel.classList.add(sel.value || 'none');
+  };
+  paint();
+  sel.onchange = () => {
+    paint();
+    api(`/tasks/${task.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ priority: sel.value ? sel.value : null }),
+    })
+      .then(loadTasks)
+      .catch((err) => {
+        console.error(err);
+        return loadTasks();
+      });
+  };
+  return sel;
+}
+
 async function loadTasks() {
   const { tasks } = await api('/tasks');
   const ul = $('#tasks');
@@ -39,7 +68,7 @@ async function loadTasks() {
     const cb = el('input', { type: 'checkbox', checked: t.done });
     cb.onchange = () => api(`/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: cb.checked }) }).then(loadTasks);
     const li = el('li', { className: t.done ? 'done' : '' }, cb, el('span', { className: 'title grow', textContent: t.title }));
-    if (flags.priority_labels && t.priority) li.append(el('span', { className: `badge ${t.priority}`, textContent: t.priority }));
+    if (flags.priority_labels) li.append(priorityControl(t));
     const del = el('button', { className: 'icon', title: 'Delete', textContent: '✕' });
     del.onclick = () => api(`/tasks/${t.id}`, { method: 'DELETE' }).then(loadTasks);
     li.append(del);

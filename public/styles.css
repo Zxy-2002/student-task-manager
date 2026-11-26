@@ -16,10 +16,17 @@ input, select { padding:8px 10px; border:1px solid var(--line); border-radius:8p
 .list li:last-child { border-bottom:0; }
 .list li.done span.title { text-decoration:line-through; color:var(--muted); }
 .list li .grow { flex:1; }
-.badge { font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:999px; }
-.badge.High { background:#fee2e2; color:#b91c1c; }
-.badge.Medium { background:#fef3c7; color:#92400e; }
-.badge.Low { background:#dcfce7; color:#166534; }
+.badge, select.priority { font-size:.75rem; font-weight:600; border-radius:999px; }
+.badge { padding:2px 8px; }
+select.priority { flex:0 0 auto; padding:4px 10px; cursor:pointer; }
+.badge.High, select.priority.High { background:#fee2e2; color:#b91c1c; border-color:#fecaca; }
+.badge.Medium, select.priority.Medium { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+.badge.Low, select.priority.Low { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+select.priority.none { color:var(--muted); }
+body.theme-dark .badge.High, body.theme-dark select.priority.High { background:#7f1d1d; color:#fecaca; border-color:#b91c1c; }
+body.theme-dark .badge.Medium, body.theme-dark select.priority.Medium { background:#78350f; color:#fde68a; border-color:#b45309; }
+body.theme-dark .badge.Low, body.theme-dark select.priority.Low { background:#14532d; color:#bbf7d0; border-color:#166534; }
+.flag-note { margin:0 0 12px; line-height:1.45; color:var(--text); font-size:.92rem; }
 .muted { color:var(--muted); font-size:.9rem; }
 .dev { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; }
 .dev p { width:100%; margin:0; }
