@@ -72,3 +72,25 @@ The diagram shows the four zones (untrusted browser, trusted Express app, GitHub
 
 ## Planned (not built yet)
 PostgreSQL task storage + `connect-pg-simple` session store, persistent audit log for flag changes, OpenFeature/Unleash instead of the homemade flag file, CodeQL scanning, deployment to a real host.
+
+## Team Pull Request and Review Workflow
+
+To maintain code quality and support team collaboration,
+all members follow this workflow:
+
+1. Create and assign a GitHub issue.
+2. Create a separate branch from main.
+3. Implement changes and commit them.
+4. Open a pull request using the PR template.
+5. Link the related issue and provide test evidence.
+6. Request a review from at least one teammate.
+7. Respond to review comments and make necessary fixes.
+8. Merge only after approval and passing CI checks.
+
+### Review Requirements
+
+- At least one teammate approval is required.
+- All required CI status checks must pass.
+- Review comments should be specific and constructive.
+- The proposed review response time is one working day.
+- Direct commits to main should be avoided.
