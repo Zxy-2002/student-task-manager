@@ -251,3 +251,15 @@ test('dev login is disabled in production', async () => {
 test('production refuses to start without SESSION_SECRET', () => {
   assert.throws(() => createApp({ flagsPath: tempFlags({}), env: { NODE_ENV: 'production' } }), /SESSION_SECRET/);
 });
+
+test('TRUST_PROXY: empty, 0 and false keep trust proxy off; 1/true/N turn it on', () => {
+  const trust = (TRUST_PROXY) =>
+    createApp({ flagsPath: tempFlags({}), env: { NODE_ENV: 'test', TRUST_PROXY } }).get('trust proxy');
+  assert.equal(trust(undefined), false);
+  assert.equal(trust(''), false);
+  assert.equal(trust('0'), false);
+  assert.equal(trust('false'), false);
+  assert.equal(trust('1'), 1);
+  assert.equal(trust('true'), 1);
+  assert.equal(trust('2'), 2);
+});
