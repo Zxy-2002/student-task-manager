@@ -19,7 +19,7 @@ Node.js 22+ · Express 5 · Passport + GitHub OAuth 2.0 · express-session (serv
 npm ci
 cp .env.example .env          # then fill in the values (never commit .env)
 npm run dev                   # http://localhost:3000
-npm test                      # 36 tests: flags, RBAC, priority edits, 403 for hidden feature, CSRF, ownership, validation
+npm test                      # 37 tests: flags, RBAC, priority edits, 403 for hidden feature, CSRF, ownership, validation
 npm audit --audit-level=high
 ```
 
@@ -32,6 +32,52 @@ To try the admin panel, put the numeric id you type there into `ADMIN_GITHUB_IDS
 2. Homepage URL `http://localhost:3000`, callback URL `http://localhost:3000/auth/github/callback`.
 3. Copy the Client ID and generate a Client Secret into `.env`.
 4. Find your numeric GitHub id at `https://api.github.com/users/<username>` and add it to `ADMIN_GITHUB_IDS`.
+
+Full details for local and production setup: see [OAuth Setup](#oauth-setup).
+
+## OAuth Setup
+
+Login uses a **GitHub OAuth App** (Passport + `passport-github2`, authorization-code flow with `state`, no scopes). The login code is already in `src/app.js`; each environment only needs its own OAuth App and env vars.
+
+### 1. Register an OAuth App (one per environment)
+GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**. A GitHub OAuth App allows only one callback URL, so create one app for local development and a separate one for production.
+
+| | Development | Production |
+|---|---|---|
+| Application name | `Student Task Manager (dev)` | `Student Task Manager` |
+| Homepage URL | `http://localhost:3000` | `https://<host>` |
+| Authorization callback URL | `http://localhost:3000/auth/github/callback` | `https://<host>/auth/github/callback` |
+
+`<host>` is the deployment domain (Railway or Render, still to be decided). After creating the app, copy the **Client ID** and click **Generate a new client secret**. The secret is shown only once; share it with teammates through a password manager or direct secure channel, never in the repo, an issue, a PR, or chat.
+
+### 2. Environment variables the app reads
+
+| Variable | Local `.env` | Production host | Notes |
+|---|---|---|---|
+| `NODE_ENV` | `development` | `production` (**required**) | `production` turns on the startup checks below, `Secure` cookies, and hard-disables dev login. |
+| `PORT` | `3000` | usually set by the host | Defaults to `3000`. |
+| `GITHUB_CLIENT_ID` | dev app Client ID | prod app Client ID | Both ID and secret must be set, otherwise `/auth/github` returns **503**. |
+| `GITHUB_CLIENT_SECRET` | dev app secret | prod app secret | |
+| `GITHUB_CALLBACK_URL` | `http://localhost:3000/auth/github/callback` | `https://<host>/auth/github/callback` | Must match the OAuth App exactly. Defaults to the localhost URL when unset. |
+| `SESSION_SECRET` | random, 32+ chars | random, 32+ chars | Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
+| `ADMIN_GITHUB_IDS` | your numeric id | numeric ids of admins | Comma-separated **numeric** ids from `https://api.github.com/users/<username>` (non-numeric entries are ignored). |
+| `TRUST_PROXY` | empty | `1` | Needed behind the host's HTTPS proxy, otherwise the `Secure` session cookie is not set and login fails with `/?login=failed`. Empty, `0` or `false` = off. |
+| `DEV_LOGIN` | `1` (optional) | leave unset | Enables `POST /auth/dev-login` (open `http://localhost:3000/?dev`). Ignored when `NODE_ENV=production`. |
+
+In production the app **refuses to start** if `SESSION_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` or `GITHUB_CALLBACK_URL` is missing, or if `SESSION_SECRET` is shorter than 32 characters.
+
+### 3. Where each secret lives
+
+* **Local** – `.env` (copied from `.env.example`, git-ignored). `npm run dev` loads it with `node --env-file=.env`.
+* **Hosting platform (Railway/Render)** – set the runtime names above (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, …) as service environment variables.
+* **GitHub Actions** – Settings → Environments → **production** → Environment secrets: `SESSION_SECRET`, `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET`, `DEPLOY_TOKEN`. GitHub does not allow secret names that start with `GITHUB_`, so the OAuth secrets use the `OAUTH_` prefix there. `scripts/check-production-secrets.sh` fails the deploy job if any of them is missing (names only, values never printed).
+
+### 4. Check that login works
+1. `npm run dev`, open `http://localhost:3000` and click **Sign in with GitHub**.
+2. Approve the app on GitHub; you are redirected back to `/` and `GET /api/me` returns your login and role (`admin` if your id is in `ADMIN_GITHUB_IDS`).
+3. If you land on `/?login=failed`, check that the callback URL in the OAuth App, `GITHUB_CALLBACK_URL`, and the URL in your browser use the same host and port (`localhost` vs `127.0.0.1` counts as different), and in production that `TRUST_PROXY=1` is set.
+
+Never commit `.env`, client secrets or session secrets. If a secret leaks, regenerate it in the OAuth App settings and update `.env`, the host, and GitHub Secrets.
 
 ## Security design (summary)
 

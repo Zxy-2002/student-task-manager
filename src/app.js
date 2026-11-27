@@ -12,6 +12,14 @@ const { createTaskStore, PRIORITIES } = require('./tasks');
 const { parseAdminIds, roleFor, requireAuth, requirePermission } = require('./rbac');
 const { issueToken, verifyCsrf } = require('./csrf');
 
+// TRUST_PROXY: empty, "0" or "false" = off; a positive integer = number of proxy hops to trust;
+// any other value (e.g. "1" or "true") = trust one hop. Previously "0" turned it ON (Number("0") || 1).
+function parseTrustProxy(raw) {
+  const v = String(raw ?? '').trim().toLowerCase();
+  if (v === '' || v === '0' || v === 'false') return 0;
+  return /^\d+$/.test(v) ? Number(v) : 1;
+}
+
 function createApp(options = {}) {
   const env = options.env || process.env;
   const isProd = env.NODE_ENV === 'production';
@@ -30,7 +38,8 @@ function createApp(options = {}) {
 
   const app = express();
   app.disable('x-powered-by');
-  if (env.TRUST_PROXY) app.set('trust proxy', Number(env.TRUST_PROXY) || 1);
+  const trustProxy = parseTrustProxy(env.TRUST_PROXY);
+  if (trustProxy) app.set('trust proxy', trustProxy);
 
   app.use(
     helmet({
