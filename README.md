@@ -49,6 +49,34 @@ The diagram shows the four zones (untrusted browser, trusted Express app, GitHub
 * **SCA** – `.github/dependabot.yml` (npm + github-actions, weekly) and `npm audit --audit-level=high` in CI.
 * **Secrets** – only in `.env` locally (git-ignored) and in GitHub Secrets / the `production` environment in CI; the app refuses to start in production without `SESSION_SECRET`.
 
+## How to Change Feature Toggles
+
+Feature toggles control whether features are available to users.
+
+Each feature has two settings:
+- `enabled`: Turns the feature on or off.
+- `rollout`: Controls the percentage of users who can access the feature.
+
+### Rollout Examples
+
+| Configuration | Result |
+|---|---|
+| `enabled: false` | Feature is off for everyone. |
+| `enabled: true`, `rollout: 0` | No users receive the feature. |
+| `enabled: true`, `rollout: 50` | Approximately 50% of users receive the feature. |
+| `enabled: true`, `rollout: 100` | All users receive the feature. |
+
+### Steps to Change a Feature Toggle
+
+1. Open the admin panel on the website.
+2. Find the feature you want to change.
+3. Change its enabled setting to turn the feature on or off.
+4. Adjust the rollout percentage to control how many users receive the feature.
+5. Save the changes and check the website to confirm the expected behaviour.
+
+**Important:** Setting `enabled` to `false` turns the feature off for everyone, regardless of the rollout percentage.
+
+
 ## API
 
 | Method | Path | Who | Notes |
